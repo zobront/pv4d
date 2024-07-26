@@ -7,25 +7,23 @@ const ELF: &[u8] = include_bytes!("../../program/elf/riscv32im-succinct-zkvm-elf
 fn main() {
     // Generate proof.
     let mut stdin = SP1Stdin::new();
-    let n = 186u32;
-    stdin.write(&n);
+
+    // read all public keys from config into Vec<B256>
+    // read personal private key from config into B256
+    stdin.write(2);
+
     let client = ProverClient::new();
     let (pk, vk) = client.setup(ELF);
-    let mut proof = client.prove(&pk, stdin).expect("proving failed");
+    let proof = prover.prove(&pk, sp1_stdin).plonk().run().unwrap();
 
-    // Read output.
-    let a = proof.public_values.read::<u128>();
-    let b = proof.public_values.read::<u128>();
-    println!("a: {}", a);
-    println!("b: {}", b);
-
-    // Verify proof.
-    client.verify(&proof, &vk).expect("verification failed");
-
-    // Save proof.
-    proof
-        .save("proof-with-io.json")
-        .expect("saving proof failed");
+    // Save solidity proof to config
+    let proof = proof.bytes();
+    let solidity_proof = proof
+        .iter()
+        .fold(String::with_capacity(proof.len() * 2), |mut acc, b| {
+            write!(acc, "{:02x}", b).unwrap();
+            acc
+        });
 
     println!("successfully generated and verified proof for the program!")
 }
